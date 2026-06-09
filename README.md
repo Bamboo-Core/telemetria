@@ -17,19 +17,35 @@ Coleta de telemetria de rede: Telegraf (host + Huawei gRPC MDT + Juniper gNMI) �
 
 ## 2. Bootstrap do token do InfluxDB 3
 
-O InfluxDB 3 Core usa um token admin. Gere uma vez e use em todo lugar:
+O InfluxDB 3 Core usa um token admin. O arquivo `secrets/admin-token` é
+**JSON** (formato gerado por `influxdb3 create token --admin --format json`),
+igual ao usado na VM de referência:
+`{"token":"apiv3_...","name":"admin","description":"..."}`.
 
-    :> secrets/admin-token
+> ⚠️ **Interpolação:** o `.env` já vem com `INFLUX_TOKEN=` vazio, mas o compose
+> exige um valor (o serviço `telegraf` usa `${INFLUX_TOKEN:?}`). Para o passo de
+> bootstrap, defina um placeholder primeiro, senão `docker compose` recusa:
+>
+>     sed -i "s/^INFLUX_TOKEN=.*/INFLUX_TOKEN=bootstrap/" .env
+
+Sequência:
+
+    # 1. placeholder (acima) + arquivo de token inicial
+    : > secrets/admin-token
+    # 2. sobe SO o InfluxDB para gerar o token
     docker compose up -d influxdb3-core
-    docker exec -it $(docker compose ps -q influxdb3-core) influxdb3 create token --admin
-
-Copie o token gerado (formato `apiv3_...`) e grave no arquivo e no .env:
-
-    printf '%s' '<TOKEN_apiv3_AQUI>' > secrets/admin-token
-    sed -i "s/^INFLUX_TOKEN=.*/INFLUX_TOKEN=<TOKEN_apiv3_AQUI>/" .env
+    # 3. gera o admin token em JSON e salva no arquivo que o InfluxDB consome
+    docker exec influxdb3-core influxdb3 create token --admin --format json \
+      | tee secrets/admin-token
+    # 4. extrai o token (apiv3_...) para o .env (usado pelo Telegraf)
+    TOKEN=$(grep -o 'apiv3_[A-Za-z0-9]*' secrets/admin-token | head -1)
+    sed -i "s/^INFLUX_TOKEN=.*/INFLUX_TOKEN=$TOKEN/" .env
+    # 5. reinicia o InfluxDB lendo o token via --admin-token-file e sobe o resto
     docker compose up -d
 
-> A VM de referência usa exatamente `--admin-token-file` apontando para um arquivo com o token.
+> **Nota:** o InfluxDB 3 Core exige CPU com instruções modernas (AVX). Em VMs
+> com CPU emulada antiga (ex.: "QEMU Virtual CPU 2.5+") o binário aborta com
+> `SIGILL` (exit 132) — use uma VM com CPU host-passthrough/moderna.
 
 ## 3. Subir a stack
 
