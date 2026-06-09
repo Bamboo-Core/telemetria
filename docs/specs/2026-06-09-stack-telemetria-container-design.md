@@ -60,11 +60,11 @@ Um `docker-compose` com três serviços:
 |---|---|---|---|
 | `influxdb3-core` | `influxdb:3-core` (oficial) | 8181 | stateful (volume) |
 | `influxdb3-explorer` | `influxdata/influxdb3-ui` (oficial) | 8888 | config em volume |
-| `telegraf` | **`ghcr.io/bamboo-core/telemetria`** (custom) | 57400, 57600 (host) | config montada/editável |
+| `telegraf` | **`ghcr.io/bamboo-core/telemetria`** (custom) | 57400 (host, MDT Huawei) | config montada/editável |
 
 ```
 Equipamentos:
-  Huawei/Cisco --(MDT dial-out)--> :57600/:57400  ┐
+  Huawei       --(MDT dial-out)--> :57400          ┐
   Juniper      --(gNMI dial-in, manual)---------->  ├─ telegraf (net=host)
   host da VM   --(cpu/mem/disk/system)----------->  ┘
                                                      │ outputs.influxdb_v2 → localhost:8181
@@ -83,8 +83,7 @@ Tudo parametrizado por `.env` (elimina o token hardcoded):
 | `SESSION_SECRET` | (obrigatória) | segredo de sessão do Explorer |
 | `INFLUX_PORT` | `8181` | porta da API do InfluxDB |
 | `EXPLORER_PORT` | `8888` | porta da UI |
-| `MDT_PORT_CISCO` | `57400` | listener MDT Cisco |
-| `MDT_PORT_HUAWEI` | `57600` | listener MDT Huawei |
+| `MDT_PORT_HUAWEI` | `57400` | listener MDT Huawei (`huawei_telemetry_dialout`) |
 
 - **Token: fonte única.** O `INFLUX_TOKEN` do `.env` é escrito no arquivo consumido pelo
   `influxdb3-core` (`--admin-token-file`) e reusado no `outputs.influxdb_v2` do Telegraf.
