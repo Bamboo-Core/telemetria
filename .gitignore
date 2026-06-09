@@ -1,5 +1,7 @@
 node_modules/
 .env
 *.log
+secrets/
 explorer/db/
+explorer/config/
 influxdb_data/
