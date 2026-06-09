@@ -1,0 +1,5 @@
+node_modules/
+.env
+*.log
+explorer/db/
+influxdb_data/
