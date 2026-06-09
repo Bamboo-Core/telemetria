@@ -1,0 +1,60 @@
+services:
+  influxdb3-core:
+    image: influxdb:3-core
+    container_name: ${INFLUX_NAME:-influxdb3-core}
+    user: "1000:1000"
+    ports:
+      - "${INFLUX_PORT:-8181}:8181"
+    command:
+      - influxdb3
+      - serve
+      - --node-id=node0
+      - --object-store=file
+      - --data-dir=/var/lib/influxdb3/data
+      - --plugin-dir=/var/lib/influxdb3/plugins
+      - --admin-token-file=/etc/influxdb3/admin-token
+    volumes:
+      - influxdb_data:/var/lib/influxdb3/data
+      - influxdb_plugins:/var/lib/influxdb3/plugins
+      - ./secrets/admin-token:/etc/influxdb3/admin-token:ro
+    restart: unless-stopped
+    networks:
+      - telemetria
+
+  influxdb3-explorer:
+    image: influxdata/influxdb3-ui:1.8.0
+    container_name: ${EXPLORER_NAME:-influxdb3-explorer}
+    command: ["--mode=admin"]
+    ports:
+      - "${EXPLORER_PORT:-8888}:8080"
+    volumes:
+      - explorer_db:/db:rw
+      - ./explorer/config:/app-root/config:ro
+    environment:
+      - SESSION_SECRET_KEY=${SESSION_SECRET:?defina SESSION_SECRET no .env}
+    restart: unless-stopped
+    depends_on:
+      - influxdb3-core
+    networks:
+      - telemetria
+
+  telegraf:
+    image: ghcr.io/bamboo-core/telemetria:latest
+    container_name: ${TELEGRAF_NAME:-telegraf}
+    network_mode: host
+    environment:
+      - INFLUX_TOKEN=${INFLUX_TOKEN:?defina INFLUX_TOKEN no .env}
+      - INFLUX_DB=${INFLUX_DB:-telemetria}
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./telegraf/telegraf.d:/etc/telegraf/telegraf.d:ro
+    restart: unless-stopped
+
+volumes:
+  influxdb_data:
+  influxdb_plugins:
+  explorer_db:
+
+networks:
+  telemetria:
+    driver: bridge
