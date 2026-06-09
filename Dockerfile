@@ -138,5 +138,9 @@ RUN make
 
 FROM telegraf:1.23.4
 COPY --from=git-telegraf-huawei /opt/telegraf/telegraf /usr/bin/telegraf
+# Config default embutida (host + Huawei MDT + Juniper comentado). Para
+# configurar Juniper, monte um telegraf.conf proprio por cima via -v.
+COPY telegraf/telegraf.conf /etc/telegraf/telegraf.conf
+COPY telegraf/telegraf.d/ /etc/telegraf/telegraf.d/
 CMD ["telegraf"]
 

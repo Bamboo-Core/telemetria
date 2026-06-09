@@ -57,9 +57,20 @@ Acesse o Explorer em `http://<IP_DA_VM>:8888`.
 
 ## 4. Configurar coletas
 
+A config (`telegraf.conf`) já vem **embutida na imagem** (host + Huawei MDT +
+Juniper comentado). Não precisa de arquivo local para o caso padrão.
+
 - **Host metrics:** já ativas, sem ação.
 - **Huawei (MDT):** configurar a telemetria **no equipamento** (dial-out gRPC apontando para `<IP_DA_VM>:57400`). Nada a editar no Telegraf.
-- **Juniper (gNMI):** editar `telegraf/telegraf.conf`, descomentar o bloco `inputs.gnmi`, preencher IP/usuário/senha, e `docker compose restart telegraf`.
+- **Juniper (gNMI):** como a config é embutida, para adicionar Juniper você
+  **monta um `telegraf.conf` próprio por cima**. Extraia o default da imagem,
+  edite o bloco `inputs.gnmi` (descomentar + IP/usuário/senha), e rode o
+  Telegraf com `-v $PWD/telegraf.conf:/etc/telegraf/telegraf.conf:ro`:
+
+      docker run --rm ghcr.io/bamboo-core/telemetria:latest \
+        cat /etc/telegraf/telegraf.conf > telegraf.conf
+      # editar telegraf.conf (bloco inputs.gnmi) e recriar o container telegraf
+      # com a flag -v acima (ou docker compose com o volume ja mapeado).
 
 ## 5. Verificar dados
 
