@@ -46,8 +46,9 @@ services:
       - INFLUX_TOKEN=${INFLUX_TOKEN:?defina INFLUX_TOKEN no .env}
       - INFLUX_DB=${INFLUX_DB:-telemetria}
     volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
-      - ./telegraf/telegraf.d:/etc/telegraf/telegraf.d:ro
+      # Conf editavel, extraido da imagem (ver README passo 1). O telegraf.d
+      # (limpeza de campos Huawei) ja vem embutido na imagem — nao precisa montar.
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
 
 volumes:
