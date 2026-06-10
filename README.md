@@ -132,11 +132,13 @@ ficar acessível **só** para esses hosts.
 > (Telegraf em `network_mode: host`) e o SSH.
 
 **a) InfluxDB `:8181` — liberar só o SaaS** (NOC.ai `201.182.96.180`, Kuanticks
-`201.182.96.178`):
+`201.182.96.178`). Filtre **pela interface pública** — senão a regra também
+bloqueia o próprio Telegraf local escrevendo no InfluxDB:
 
-    sudo iptables -I DOCKER-USER -p tcp --dport 8181 -j DROP
-    sudo iptables -I DOCKER-USER -p tcp --dport 8181 -s 201.182.96.180 -j ACCEPT  # NOC.ai (dados)
-    sudo iptables -I DOCKER-USER -p tcp --dport 8181 -s 201.182.96.178 -j ACCEPT  # Kuanticks (teste)
+    IFACE=$(ip route get 1.1.1.1 | grep -oP 'dev \K\S+')   # descobre a interface publica
+    sudo iptables -I DOCKER-USER -i "$IFACE" -p tcp --dport 8181 -j DROP
+    sudo iptables -I DOCKER-USER -i "$IFACE" -p tcp --dport 8181 -s 201.182.96.180 -j ACCEPT  # NOC.ai (dados)
+    sudo iptables -I DOCKER-USER -i "$IFACE" -p tcp --dport 8181 -s 201.182.96.178 -j ACCEPT  # Kuanticks (teste)
     sudo apt install -y iptables-persistent && sudo netfilter-persistent save
 
 **b) Explorer `:8888`** (UI admin, o SaaS não usa) — prenda em localhost no

@@ -173,10 +173,14 @@ docker compose ps
 
 # ===== final =====
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+# interface publica (pra filtrar SO o trafego externo na 8181 — senao o proprio
+# Telegraf local seria bloqueado ao escrever no InfluxDB)
+IFACE_PUB=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+' | head -1)
+IFACE_PUB="${IFACE_PUB:-<IFACE_PUBLICA>}"
 # monta as regras de allowlist da :8181 a partir de NOCAI_IPS
 HARDEN_8181=""
 for _ip in $NOCAI_IPS; do
-  HARDEN_8181="${HARDEN_8181}      sudo iptables -I DOCKER-USER -p tcp --dport 8181 -s ${_ip} -j ACCEPT
+  HARDEN_8181="${HARDEN_8181}      sudo iptables -I DOCKER-USER -i ${IFACE_PUB} -p tcp --dport 8181 -s ${_ip} -j ACCEPT
 "
 done
 cat <<MSG
@@ -206,10 +210,11 @@ cat <<MSG
  3) IP PUBLICO -> HARDENING OBRIGATORIO:
 
     a) InfluxDB :8181 — liberar SO o SaaS (NOC.ai puxa dados, Kuanticks testa).
-       O UFW NAO filtra porta publicada por container; use a chain DOCKER-USER:
-      sudo iptables -I DOCKER-USER -p tcp --dport 8181 -j DROP
+       O UFW NAO filtra porta publicada por container; use a chain DOCKER-USER.
+       Filtra-se pela interface publica (${IFACE_PUB}) p/ NAO bloquear o Telegraf local:
+      sudo iptables -I DOCKER-USER -i ${IFACE_PUB} -p tcp --dport 8181 -j DROP
 ${HARDEN_8181}      sudo apt install -y iptables-persistent && sudo netfilter-persistent save
-       (IPs configuraveis em NOCAI_IPS no topo do script.)
+       (IPs em NOCAI_IPS no topo do script; interface detectada automaticamente.)
 
     b) Explorer :8888 (UI admin, o SaaS nao usa) — prenda em localhost no
        docker-compose.yml:  "127.0.0.1:8888:8080"  e acesse por tunel:
