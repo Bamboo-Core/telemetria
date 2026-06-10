@@ -9,6 +9,16 @@ Coleta de telemetria de rede: Telegraf (host + Huawei gRPC MDT + Juniper gNMI) �
 > orquestradas por um `docker-compose.yml` e um `.env`. A config do Telegraf é
 > **extraída de dentro da imagem** e editada no host (passo 1).
 
+## Instalação rápida
+
+Use o script **[`instalar.sh`](instalar.sh)** — ele faz tudo (cria os arquivos,
+extrai o `telegraf.conf` da imagem, faz o bootstrap do token e sobe a stack):
+
+    bash instalar.sh
+
+Depois é só editar `~/telemetria/telegraf.conf` para adicionar os equipamentos
+(ver passo 4). Os passos manuais abaixo (1–6) ficam como referência/detalhamento.
+
 ## Pré-requisitos
 
 - Docker + Docker Compose na VM do cliente.
