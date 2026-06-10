@@ -113,37 +113,51 @@ As medidas de host (`cpu`, `mem`, `disk`, `system`) devem aparecer nos primeiros
 
 ## 6. Hardening — **obrigatório em VM com IP público**
 
-A stack expõe portas que **não podem ficar abertas para a internet**:
+**Como o SaaS consome os dados:** o backend do **NOC.ai** (puxa os dados do
+dashboard) e o do **Kuanticks** (testa a conexão ao cadastrar a credencial)
+saem e consultam a `:8181` desta VM via API (`/api/v3/query_sql`, token Bearer).
+A VM **não** inicia conexão — quem vai até ela é o SaaS. Logo, a `:8181` precisa
+ficar acessível **só** para esses hosts.
 
-| Porta | Serviço | Sentido | Ação |
+| Porta | Serviço | Quem usa | Ação |
 |---|---|---|---|
-| `8888` | Explorer (UI do banco) | entrada | **nunca** expor; VPN/túnel SSH ou bind em localhost |
-| `8181` | InfluxDB 3 | entrada | restringir a VPN/IP confiável |
-| `57400` | Huawei dial-out (Telegraf, `network_mode: host`) | entrada | liberar **só** para os IPs dos equipamentos |
-| gNMI (ex. `32767`) | Juniper | **saída** (VM → device) | não precisa abrir entrada |
+| `8181` | InfluxDB 3 | NOC.ai + Kuanticks (API) | allowlist dos IPs do SaaS via `DOCKER-USER` |
+| `8888` | Explorer (UI) | só admin | bind em `127.0.0.1` + túnel SSH |
+| `57400` | Huawei dial-out (Telegraf, `network_mode: host`) | equipamentos | UFW: liberar só os IPs dos Huawei |
+| gNMI (ex. `32767`) | Juniper | **saída** (VM → device) | nada a abrir |
 
-> ⚠️ **Docker fura o UFW/iptables:** portas publicadas por containers em rede
-> bridge (8181 e 8888) **passam por cima do UFW** por padrão. Não confie só no
-> UFW para elas — a forma robusta é **não publicar na interface pública**.
+> ⚠️ **Docker fura o UFW:** portas publicadas por containers bridge (`8181` e
+> `8888`) **passam por cima do UFW**. Para elas, use a chain `DOCKER-USER` (que o
+> Docker respeita) ou prenda em `127.0.0.1`. O UFW só vale para a `57400`
+> (Telegraf em `network_mode: host`) e o SSH.
 
-**Recomendado (IP público):** bind do InfluxDB e do Explorer em `127.0.0.1` e
-acesso via túnel SSH. No `docker-compose.yml`, troque os mapeamentos de porta:
+**a) InfluxDB `:8181` — liberar só o SaaS** (NOC.ai `201.182.96.180`, Kuanticks
+`201.182.96.178`):
 
-    # influxdb3-core
-    ports: ["127.0.0.1:8181:8181"]
+    sudo iptables -I DOCKER-USER -p tcp --dport 8181 -j DROP
+    sudo iptables -I DOCKER-USER -p tcp --dport 8181 -s 201.182.96.180 -j ACCEPT  # NOC.ai (dados)
+    sudo iptables -I DOCKER-USER -p tcp --dport 8181 -s 201.182.96.178 -j ACCEPT  # Kuanticks (teste)
+    sudo apt install -y iptables-persistent && sudo netfilter-persistent save
+
+**b) Explorer `:8888`** (UI admin, o SaaS não usa) — prenda em localhost no
+`docker-compose.yml` e acesse por túnel SSH:
+
     # influxdb3-explorer
     ports: ["127.0.0.1:8888:8080"]
-
-Acesso à UI a partir da sua máquina:
-
+    # da sua maquina:
     ssh -L 8888:127.0.0.1:8888 usuario@<IP_DA_VM>   # abre http://localhost:8888
 
-**Firewall do host** (vale para o `57400` em `network_mode: host` e para o SSH):
+**c) Firewall do host (UFW)** — `57400` (Huawei) e SSH:
 
-    ufw default deny incoming
-    ufw allow from <IP_ADMIN/VPN> to any port 22 proto tcp
-    ufw allow from <IP_EQUIPAMENTO_HUAWEI> to any port 57400 proto tcp
-    ufw enable
+    sudo ufw default deny incoming
+    sudo ufw allow from <IP_ADMIN/VPN> to any port 22 proto tcp
+    sudo ufw allow from <IP_EQUIPAMENTO_HUAWEI> to any port 57400 proto tcp
+    sudo ufw enable
+
+> **Token em texto puro:** a URL cadastrada no Kuanticks é `http://…:8181`, então
+> o token admin trafega sem TLS. O allowlist acima protege o "quem"; para
+> criptografar, coloque um proxy HTTPS na frente do `:8181` e cadastre a URL do
+> tenant como `https://…` (aí o filtro passa para a `443`, onde o UFW funciona).
 
 ## Imagem
 

@@ -18,6 +18,9 @@ set -euo pipefail
 IMAGE="${IMAGE:-ghcr.io/bamboo-core/telemetria:latest}"
 WORKDIR="${WORKDIR:-$HOME/telemetria}"
 INFLUX_DB_NAME="${INFLUX_DB_NAME:-telemetria}"
+# Hosts do SaaS que consultam a :8181 (NOC.ai puxa os dados; Kuanticks testa a
+# conexao ao cadastrar). O Postgres (poc01 / .108) NAO entra aqui.
+NOCAI_IPS="${NOCAI_IPS:-201.182.96.180 201.182.96.178}"
 
 say()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m[aviso] %s\033[0m\n' "$*"; }
@@ -170,6 +173,12 @@ docker compose ps
 
 # ===== final =====
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+# monta as regras de allowlist da :8181 a partir de NOCAI_IPS
+HARDEN_8181=""
+for _ip in $NOCAI_IPS; do
+  HARDEN_8181="${HARDEN_8181}      sudo iptables -I DOCKER-USER -p tcp --dport 8181 -s ${_ip} -j ACCEPT
+"
+done
 cat <<MSG
 
 ============================================================
@@ -195,15 +204,28 @@ cat <<MSG
      1 bloco [[inputs.gnmi]] por equipamento com credenciais distintas.)
 
  3) IP PUBLICO -> HARDENING OBRIGATORIO:
-    - troque as portas do InfluxDB/Explorer para escutar so em localhost no
-      docker-compose.yml:  "127.0.0.1:8181:8181"  e  "127.0.0.1:8888:8080"
-      (Docker FURA o UFW nessas portas publicadas — nao confie so no firewall);
-      acesse a UI por tunel:  ssh -L 8888:127.0.0.1:8888 usuario@${IP:-<IP_DA_VM>}
-    - firewall do host (UFW) p/ a 57400 (Telegraf em network_mode host) e SSH:
-        sudo ufw default deny incoming
-        sudo ufw allow from <IP_ADMIN/VPN> to any port 22 proto tcp
-        sudo ufw allow from <IP_EQUIPAMENTO_HUAWEI> to any port 57400 proto tcp
-        sudo ufw enable
+
+    a) InfluxDB :8181 — liberar SO o SaaS (NOC.ai puxa dados, Kuanticks testa).
+       O UFW NAO filtra porta publicada por container; use a chain DOCKER-USER:
+      sudo iptables -I DOCKER-USER -p tcp --dport 8181 -j DROP
+${HARDEN_8181}      sudo apt install -y iptables-persistent && sudo netfilter-persistent save
+       (IPs configuraveis em NOCAI_IPS no topo do script.)
+
+    b) Explorer :8888 (UI admin, o SaaS nao usa) — prenda em localhost no
+       docker-compose.yml:  "127.0.0.1:8888:8080"  e acesse por tunel:
+         ssh -L 8888:127.0.0.1:8888 usuario@${IP:-<IP_DA_VM>}
+
+    c) Huawei :57400 (Telegraf em network_mode host -> UFW funciona) e SSH:
+         sudo ufw default deny incoming
+         sudo ufw allow from <IP_ADMIN/VPN> to any port 22 proto tcp
+         sudo ufw allow from <IP_EQUIPAMENTO_HUAWEI> to any port 57400 proto tcp
+         sudo ufw enable
+
+    d) Juniper :32767 — nada a abrir (e saida da VM).
+
+    OBS: a URL cadastrada e http:// -> o token trafega em texto puro. O
+    allowlist acima protege o "quem"; para criptografar, use proxy HTTPS na
+    frente do :8181 e cadastre a URL do tenant como https:// no Kuanticks.
 
  OPERACAO
  --------
