@@ -35,6 +35,7 @@ Depois é só editar `~/telemetria/telegraf.conf` para adicionar os equipamentos
     # repo privado: precisa de acesso/token, ou copie esses 2 arquivos do pacote de deploy.
     curl -fsSLO https://raw.githubusercontent.com/Bamboo-Core/telemetria/main/docker-compose.yml
     curl -fsSL  https://raw.githubusercontent.com/Bamboo-Core/telemetria/main/.env.example -o .env
+    curl -fsSLO https://raw.githubusercontent.com/Bamboo-Core/telemetria/main/hardening.sh   # fechar a VM depois (passo 6)
     echo "SESSION_SECRET=$(openssl rand -hex 32)" >> .env
 
     # extrair o template de config do Telegraf de DENTRO da imagem (editavel; o
@@ -112,6 +113,21 @@ passo 1**. Edite esse arquivo no host e recrie o Telegraf.
 As medidas de host (`cpu`, `mem`, `disk`, `system`) devem aparecer nos primeiros minutos — provam o pipeline Telegraf→InfluxDB.
 
 ## 6. Hardening — **obrigatório em VM com IP público**
+
+**Forma automática (recomendada):** rode o **[`hardening.sh`](hardening.sh)** depois
+do `instalar.sh`. Ele aplica tudo desta seção (allowlist da `:8181` via
+`DOCKER-USER` filtrada pela interface pública, prende o Explorer `:8888` em
+`127.0.0.1` e configura o UFW para SSH + Huawei). É idempotente.
+
+    # libera SO o SaaS na :8181 (NOC.ai + Kuanticks ja sao o default)
+    sudo bash hardening.sh
+    # restringindo SSH e liberando equipamentos Huawei:
+    sudo SSH_SRC=198.51.100.5 HUAWEI_IPS="203.0.113.10 203.0.113.11" bash hardening.sh
+
+Variáveis: `NOCAI_IPS` (IPs do SaaS na `:8181`), `HUAWEI_IPS` (`:57400`),
+`SSH_SRC` (origem do SSH), `IFACE` (auto-detect), `SKIP_UFW=1`, `SKIP_EXPLORER=1`.
+
+Os passos manuais abaixo ficam como referência/detalhamento do que o script faz.
 
 **Como o SaaS consome os dados:** o backend do **NOC.ai** (puxa os dados do
 dashboard) e o do **Kuanticks** (testa a conexão ao cadastrar a credencial)

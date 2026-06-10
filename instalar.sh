@@ -129,6 +129,15 @@ else
   docker run --rm "$IMAGE" cat /etc/telegraf/telegraf.conf > telegraf.conf
 fi
 
+# --- hardening.sh (baixa pra o WORKDIR; usado no passo 6 / fim deste script) ---
+if [ -f hardening.sh ]; then
+  warn "hardening.sh ja existe — mantendo o atual."
+else
+  say "Baixando hardening.sh"
+  curl -fsSLO https://raw.githubusercontent.com/Bamboo-Core/telemetria/main/hardening.sh \
+    || warn "Nao consegui baixar hardening.sh — rode o hardening manualmente (ver README secao 6)."
+fi
+
 # --- admin-token (precisa existir como ARQUIVO antes do up) ---
 [ -e secrets/admin-token ] || : > secrets/admin-token
 [ -d secrets/admin-token ] && die "secrets/admin-token e um diretorio (criado por um 'up' anterior sem o arquivo). Remova-o: rmdir secrets/admin-token"
@@ -208,6 +217,12 @@ cat <<MSG
      1 bloco [[inputs.gnmi]] por equipamento com credenciais distintas.)
 
  3) IP PUBLICO -> HARDENING OBRIGATORIO:
+
+    >>> FORMA AUTOMATICA: rode o hardening.sh (faz tudo de a) a d) abaixo):
+          sudo bash $WORKDIR/hardening.sh
+          # restringindo SSH / liberando Huawei:
+          sudo SSH_SRC=<IP_ADMIN> HUAWEI_IPS="<IP1> <IP2>" bash $WORKDIR/hardening.sh
+        (idempotente. Os passos a)-d) abaixo sao o que o script aplica.)
 
     a) InfluxDB :8181 — liberar SO o SaaS (NOC.ai puxa dados, Kuanticks testa).
        O UFW NAO filtra porta publicada por container; use a chain DOCKER-USER.
