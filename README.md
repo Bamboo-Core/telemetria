@@ -111,23 +111,6 @@ No cadastro da fonte de telemetria do Kuantics, use:
 
 ---
 
-## O que deixar PÚBLICO ou PRIVADO
-
-| Item | Recomendado | Por quê |
-|---|---|---|
-| **Imagem GHCR** `ghcr.io/bamboo-core/telemetria` | 🌐 **Público** | Para o cliente baixar com `docker compose` sem precisar de `docker login`. (Já está público.) |
-| **Repositório** `Bamboo-Core/telemetria` | 🌐 Público *ou* 🔒 Privado | Pode ser público com segurança: **não há credenciais no código** (`.env` e `secrets/` estão no `.gitignore`). Se mantiver **privado**, o cliente precisa de acesso/token para o `git clone` — nesse caso, prefira entregar os arquivos por outro meio (zip/scp). |
-| **`.env`** | 🔒 **Sempre privado** | Contém o token do InfluxDB e as senhas dos equipamentos. **Nunca** versionar (já bloqueado). |
-| **`secrets/`** | 🔒 **Sempre privado** | Guarda o token admin. Nunca versionar (já bloqueado). |
-
-### Exposição de portas / rede (segurança da VM)
-A stack publica `8181` (InfluxDB) e `8888` (Explorer) em `0.0.0.0` (todas as
-interfaces). Em VM com **IP público**, restrinja o acesso a essas portas por
-firewall — libere `8181` só para o IP do Kuantics e `8888` só para a sua rede de
-gestão. A `57400` (Huawei dial-out) precisa estar acessível para os equipamentos.
-
----
-
 ## Operação
 
 ```bash
