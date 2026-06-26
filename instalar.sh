@@ -104,7 +104,6 @@ echo
 echo "  Explorer (UI):     http://${IP}:8888"
 echo "  InfluxDB (API):    http://${IP}:8181"
 echo "  Database:          ${INFLUX_DB}"
-echo "  Token admin:       (em ./secrets/admin-token e no .env)"
 echo
 echo "  Coleta Huawei (passiva): aponte o telemetry dos equipamentos para"
 echo "                           ${IP}:57400 (dial-out gRPC)."
@@ -113,10 +112,14 @@ echo "  Coleta gNMI (manual): cadastre equipamentos copiando modelos de"
 echo "                        exemplos/ para telegraf.d/ e rode:"
 echo "                        docker compose restart telegraf-gnmi"
 echo
-printf "${B}  >> Para cadastrar no Kuantics:${N}\n"
-echo "     URL/Host:  http://${IP}:8181"
-echo "     Database:  ${INFLUX_DB}"
-echo "     Token:     conteúdo de ./secrets/admin-token"
+printf "${Y}${B}  ┌──────────────────────────────────────────────────────────┐${N}\n"
+printf "${Y}${B}  │  CADASTRE ESTES DADOS NO KUANTICS                         │${N}\n"
+printf "${Y}${B}  └──────────────────────────────────────────────────────────┘${N}\n"
+echo "     Host / URL:  http://${IP}:8181"
+echo "     Database:    ${INFLUX_DB}"
+printf "     Token:       ${B}%s${N}\n" "${TOKEN}"
+echo
+echo "     (o token também fica salvo em ./secrets/admin-token e no .env)"
 echo
 echo "  Status:  docker compose ps"
 echo "  Logs:    docker logs -f telegraf-gnmi   |   docker logs -f influxdb3-core"

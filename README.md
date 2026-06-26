@@ -46,6 +46,33 @@ ele imprime as URLs de acesso e os dados para cadastrar no Kuantics.
 > **publicada e pública** no GHCR — o cliente só baixa, não compila nada. A pasta
 > `build/` só serve se um dia for preciso **atualizar** essa imagem.
 
+Ao final, o `instalar.sh` imprime na tela um quadro **"CADASTRE ESTES DADOS NO
+KUANTICS"** com o Host, o Database e o **token** já preenchidos.
+
+---
+
+## Como o Telegraf se conecta ao InfluxDB (automático)
+
+**Você não precisa fazer nada manual para ligar o Telegraf ao banco** — o
+`instalar.sh` já faz essa amarração:
+
+1. Gera o token admin do InfluxDB e grava em `.env` (`INFLUX_TOKEN`).
+2. O `docker-compose.yml` injeta esse token + a URL + o database nos dois
+   coletores via variáveis de ambiente:
+   - `telegraf-huawei` → `INFLUX_URL=http://127.0.0.1:8181` (rede do host)
+   - `telegraf-gnmi`   → `INFLUX_URL=http://influxdb3-core:8181` (rede interna)
+3. Cada `telegraf-*.conf` tem um bloco `[[outputs.influxdb_v2]]` que usa essas
+   variáveis. Ou seja: subiu a stack, o Telegraf já está escrevendo no banco.
+
+**Conferir que os dados estão chegando** (deve listar tabelas como `cpu`, `mem`):
+```bash
+docker exec influxdb3-core influxdb3 query \
+  --database telemetria \
+  --token "$(cat secrets/admin-token)" \
+  "SHOW TABLES"
+```
+Se aparecerem tabelas, o vínculo Telegraf → InfluxDB está funcionando.
+
 ---
 
 ## Cadastrar equipamentos gNMI (Juniper / Arista / Cisco)
@@ -81,6 +108,23 @@ No cadastro da fonte de telemetria do Kuantics, use:
 | Host / URL | `http://IP_DA_VM:8181` |
 | Database / bucket | `telemetria` |
 | Token | conteúdo de `./secrets/admin-token` (também no `.env`) |
+
+---
+
+## O que deixar PÚBLICO ou PRIVADO
+
+| Item | Recomendado | Por quê |
+|---|---|---|
+| **Imagem GHCR** `ghcr.io/bamboo-core/telemetria` | 🌐 **Público** | Para o cliente baixar com `docker compose` sem precisar de `docker login`. (Já está público.) |
+| **Repositório** `Bamboo-Core/telemetria` | 🌐 Público *ou* 🔒 Privado | Pode ser público com segurança: **não há credenciais no código** (`.env` e `secrets/` estão no `.gitignore`). Se mantiver **privado**, o cliente precisa de acesso/token para o `git clone` — nesse caso, prefira entregar os arquivos por outro meio (zip/scp). |
+| **`.env`** | 🔒 **Sempre privado** | Contém o token do InfluxDB e as senhas dos equipamentos. **Nunca** versionar (já bloqueado). |
+| **`secrets/`** | 🔒 **Sempre privado** | Guarda o token admin. Nunca versionar (já bloqueado). |
+
+### Exposição de portas / rede (segurança da VM)
+A stack publica `8181` (InfluxDB) e `8888` (Explorer) em `0.0.0.0` (todas as
+interfaces). Em VM com **IP público**, restrinja o acesso a essas portas por
+firewall — libere `8181` só para o IP do Kuantics e `8888` só para a sua rede de
+gestão. A `57400` (Huawei dial-out) precisa estar acessível para os equipamentos.
 
 ---
 
