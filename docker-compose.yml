@@ -49,10 +49,11 @@ services:
       - telemetria
 
   # --- Coleta PASSIVA Huawei (dial-out gRPC MDT) -----------------------------
-  # Imagem custom compilada com o plugin gRPC da Huawei (ver build/ e publicar.sh).
-  # Os equipamentos Huawei EMPURRAM os dados para as portas abaixo.
+  # Usa a imagem JÁ PUBLICADA no GHCR (Telegraf 1.23.4 com o plugin gRPC Huawei
+  # compilado). O cliente só baixa — não precisa compilar nada.
+  # Só rebuilde (ver build/) se precisar de outros .proto da Huawei.
   telegraf-huawei:
-    image: ${HUAWEI_IMAGE:-ghcr.io/bamboo-core/telegraf-huawei:latest}
+    image: ${HUAWEI_IMAGE:-ghcr.io/bamboo-core/telemetria:latest}
     container_name: telegraf-huawei
     network_mode: host
     environment:

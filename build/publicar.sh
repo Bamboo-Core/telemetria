@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 ###############################################################################
-# publicar.sh — Build e push da imagem Telegraf-Huawei para o GHCR (USO INTERNO)
+# publicar.sh — Rebuild e push da imagem Telegraf-Huawei para o GHCR (OPCIONAL)
 #
-# Rode UMA VEZ (ou quando mudar o Dockerfile/protos). Depois disso, qualquer
-# cliente apenas baixa a imagem com `docker compose up` — não precisa compilar.
+# A imagem ghcr.io/bamboo-core/telemetria:latest JÁ está publicada e pública —
+# o cliente baixa direto, não precisa rodar isto. Use APENAS para ATUALIZAR a
+# imagem (ex.: incluir outros .proto da Huawei ou subir a versão do Telegraf).
 #
 # Pré-requisitos:
 #   - docker buildx (já vem no Docker moderno)
@@ -21,7 +22,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-IMAGE="${IMAGE:-ghcr.io/bamboo-core/telegraf-huawei}"
+IMAGE="${IMAGE:-ghcr.io/bamboo-core/telemetria}"
 TAG="${1:-latest}"
 
 # Quais .proto da Huawei incluir (precisa bater com o ARG do Dockerfile).

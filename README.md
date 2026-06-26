@@ -42,8 +42,9 @@ O `instalar.sh` é idempotente e faz tudo: cria o `.env`, gera o token admin e o
 `SESSION_SECRET`, cria o database `telemetria` e sobe todos os serviços. Ao final
 ele imprime as URLs de acesso e os dados para cadastrar no Kuantics.
 
-> A imagem do Telegraf-Huawei já vem **pronta** do GHCR — não é preciso compilar
-> nada na VM do cliente. (A compilação é feita por nós; veja `build/`.)
+> A imagem do Telegraf-Huawei (`ghcr.io/bamboo-core/telemetria:latest`) já está
+> **publicada e pública** no GHCR — o cliente só baixa, não compila nada. A pasta
+> `build/` só serve se um dia for preciso **atualizar** essa imagem.
 
 ---
 
@@ -128,7 +129,7 @@ telemetria/
 │   ├── arista.conf.exemplo
 │   ├── cisco.conf.exemplo
 │   └── nokia-gnmic.yaml.exemplo
-└── build/                    # USO INTERNO — build/push da imagem Huawei
+└── build/                    # OPCIONAL — só para rebuildar/atualizar a imagem Huawei
     ├── Dockerfile
     ├── generate_paths.go
     ├── telegraf.conf
