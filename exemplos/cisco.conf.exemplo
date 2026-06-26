@@ -1,0 +1,45 @@
+###############################################################################
+# MODELO — Cisco IOS-XR/XE/NX-OS via gNMI (dial-in OpenConfig)
+#
+# COMO USAR:
+#   cp exemplos/cisco.conf.exemplo telegraf.d/cisco-core01.conf
+#   (edite IP/porta/credencial e reinicie: docker compose restart telegraf-gnmi)
+#
+# Porta gNMI varia conforme a plataforma/config (ex.: 57777, 57400, 9339).
+# Em equipamentos com gRPC dial-out MDT, prefira a frente Huawei/MDT dedicada.
+###############################################################################
+[[inputs.gnmi]]
+  addresses = ["IP_DO_CISCO:57777"]
+  username = "${CISCO_USER}"
+  password = "${CISCO_PASS}"
+  encoding = "proto"
+  redial = "10s"
+  tls_enable = true
+  insecure_skip_verify = true
+  path_guessing_strategy = "subscription"
+
+  [inputs.gnmi.aliases]
+    cisco_if_counters  = "/interfaces/interface/state/counters"
+    cisco_if_state     = "/interfaces/interface/state"
+    cisco_bgp_neighbor = "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+
+  [[inputs.gnmi.subscription]]
+    name = "cisco_if_counters"
+    origin = "openconfig"
+    path = "/interfaces/interface/state/counters"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "cisco_if_state"
+    origin = "openconfig"
+    path = "/interfaces/interface/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "cisco_bgp_neighbor"
+    origin = "openconfig"
+    path = "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"

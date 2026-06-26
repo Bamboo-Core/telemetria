@@ -1,0 +1,23 @@
+# Arquivos com segredos — NUNCA versionar
+.env
+.env.local
+.env.*.local
+secrets/
+
+# Dados persistentes
+data/
+plugins/
+explorer/db/
+
+# Backups e temporários
+*.bak
+*.backup
+*.tmp
+*.log
+*.swp
+*~
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

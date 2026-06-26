@@ -1,0 +1,149 @@
+###############################################################################
+# MODELO — Juniper Junos via gNMI (dial-in OpenConfig + sensores nativos)
+#
+# COMO USAR:
+#   1. Copie para a pasta telegraf.d/ com um nome único, ex.:
+#        cp exemplos/juniper.conf.exemplo telegraf.d/juniper-pe01.conf
+#   2. Edite addresses/username/password (ou use ${VARS} do .env).
+#   3. docker compose restart telegraf-gnmi
+#
+# Pré-requisitos no equipamento: gRPC habilitado + usuário com permissão de
+# telemetria. Porta padrão de dial-in Junos: 32767.
+###############################################################################
+[[inputs.gnmi]]
+  addresses = ["IP_DO_JUNIPER:32767"]
+  username = "${JUNIPER_USER}"
+  password = "${JUNIPER_PASS}"
+  encoding = "proto"
+  redial = "10s"
+  tls_enable = true
+  insecure_skip_verify = true
+  path_guessing_strategy = "subscription"
+
+  [inputs.gnmi.aliases]
+    juniper_if_counters  = "/interfaces/interface/state/counters"
+    juniper_if_state     = "/interfaces/interface/state"
+    juniper_components   = "/components/component/state"
+    juniper_bgp_neighbor = "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+    juniper_lacp         = "/lacp/interfaces/interface/state"
+    juniper_lc_firewall  = "/junos/firewall"
+    juniper_lc_fabric    = "/junos/fabric-statistics"
+    juniper_lc_optics    = "/interfaces/interface/optics"
+    juniper_lc_cpu_memory  = "/components/component[name=FPC0:CPU0]/properties"
+    juniper_lc_npu_memory  = "/components/component[name=FPC0:NPU0]/properties"
+    juniper_if_init      = "/interfaces/interface/init-time"
+    juniper_comp_props   = "/components/component/properties/property/state/value"
+
+  # --- OpenConfig (multi-vendor) -------------------------------------------
+  [[inputs.gnmi.subscription]]
+    name = "juniper_if_counters"
+    origin = "openconfig-interfaces"
+    path = "/interfaces/interface/state/counters"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_cpu"
+    origin = "openconfig-system"
+    path = "/system/cpus/cpu/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_alarms"
+    origin = "openconfig-system"
+    path = "/system/alarms/alarm/state"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_components"
+    origin = "openconfig-platform"
+    path = "/components/component/state"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_transceiver"
+    origin = "openconfig-platform"
+    path = "/components/component/transceiver/state"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_bgp_neighbor"
+    origin = "openconfig-network-instance"
+    path = "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lldp"
+    origin = "openconfig-lldp"
+    path = "/lldp/interfaces/interface/neighbors/neighbor/state"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lacp"
+    origin = "openconfig-lacp"
+    path = "/lacp/interfaces/interface/state"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  # --- Nativos Junos (sensores específicos de linecard) --------------------
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_optics"
+    origin = "Juniper"
+    path = "/junos/system/linecard/optics"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_cpu_memory"
+    origin = "Juniper"
+    path = "/junos/system/linecard/cpu/memory"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_npu_memory"
+    origin = "Juniper"
+    path = "/junos/system/linecard/npu/memory"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_npu_util"
+    origin = "Juniper"
+    path = "/junos/system/linecard/npu/utilization"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_interface"
+    origin = "Juniper"
+    path = "/junos/system/linecard/interface"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_firewall"
+    origin = "Juniper"
+    path = "/junos/system/linecard/firewall"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_fabric"
+    origin = "Juniper"
+    path = "/junos/system/linecard/fabric"
+    subscription_mode = "sample"
+    sample_interval = "60s"
+
+  [[inputs.gnmi.subscription]]
+    name = "juniper_lc_intf_exp"
+    origin = "Juniper"
+    path = "/junos/system/linecard/intf-exp"
+    subscription_mode = "sample"
+    sample_interval = "30s"

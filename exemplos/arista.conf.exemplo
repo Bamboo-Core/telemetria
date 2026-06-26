@@ -1,0 +1,52 @@
+###############################################################################
+# MODELO — Arista EOS via gNMI (dial-in OpenConfig, json_ietf)
+#
+# COMO USAR:
+#   cp exemplos/arista.conf.exemplo telegraf.d/arista-sw01.conf
+#   (edite IP/credencial e reinicie: docker compose restart telegraf-gnmi)
+#
+# Repita o bloco (um arquivo por switch) ou liste vários IPs em "addresses"
+# se compartilharem a mesma credencial.
+#
+# fielddrop: name/neighbor_address evitam colisão tag/field no IOx;
+#            counters/* evita duplicar contadores dentro de arista_if_state.
+###############################################################################
+[[inputs.gnmi]]
+  addresses = ["IP_DO_ARISTA:6030"]
+  username = "${ARISTA_USER}"
+  password = "${ARISTA_PASS}"
+  encoding = "json_ietf"
+  redial = "10s"
+  tls_enable = false
+  path_guessing_strategy = "subscription"
+  fielddrop = ["name", "neighbor_address", "counters/*"]
+
+  [inputs.gnmi.aliases]
+    arista_if_counters  = "/interfaces/interface/state/counters"
+    arista_if_state     = "/interfaces/interface/state"
+    arista_cpu          = "/components/component/cpu/utilization/state"
+    arista_bgp_neighbor = "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+
+  [[inputs.gnmi.subscription]]
+    name = "arista_if_counters"
+    path = "/interfaces/interface/state/counters"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "arista_if_state"
+    path = "/interfaces/interface/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "arista_cpu"
+    path = "/components/component/cpu/utilization/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"
+
+  [[inputs.gnmi.subscription]]
+    name = "arista_bgp_neighbor"
+    path = "/network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state"
+    subscription_mode = "sample"
+    sample_interval = "30s"

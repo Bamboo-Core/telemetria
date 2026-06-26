@@ -1,0 +1,44 @@
+# MODELO — Nokia SR OS via gnmic (dial-out / subscribe) → InfluxDB 3 Core
+#
+# COMO USAR (frente OPCIONAL):
+#   1. cp exemplos/nokia-gnmic.yaml.exemplo gnmic.yaml
+#   2. Edite os targets (IP:porta), credenciais e o INFLUX_TOKEN abaixo.
+#   3. Suba o serviço opcional:  docker compose --profile nokia up -d
+#
+# Observação: o container gnmic roda em network_mode: host, então alcança o
+# InfluxDB pela porta publicada na própria VM (http://127.0.0.1:8181).
+
+username: NOKIA_USER
+password: NOKIA_PASS
+skip-verify: true
+encoding: json_ietf
+
+# Equipamentos Nokia a coletar (dial-in). Para dial-out, veja gnmi-server abaixo.
+targets:
+  IP_DO_NOKIA:57400:
+    subscriptions:
+      - nokia_if
+      - nokia_system
+
+subscriptions:
+  nokia_if:
+    paths:
+      - "/state/port/statistics"
+      - "/state/router/interface/statistics"
+    mode: sample
+    sample-interval: 30s
+  nokia_system:
+    paths:
+      - "/state/system/cpu"
+      - "/state/system/memory-pools"
+    mode: sample
+    sample-interval: 30s
+
+outputs:
+  influx:
+    type: influxdb
+    url: http://127.0.0.1:8181
+    bucket: telemetria        # database no InfluxDB 3
+    token: COLE_AQUI_O_INFLUX_TOKEN
+    batch-size: 1000
+    flush-timer: 10s
