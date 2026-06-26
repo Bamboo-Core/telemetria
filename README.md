@@ -33,7 +33,7 @@ docker compose version
 ## Instalação (1 comando)
 
 ```bash
-git clone <URL_DESTE_REPO> telemetria
+git clone https://github.com/Bamboo-Core/telemetria telemetria
 cd telemetria
 ./instalar.sh
 ```
